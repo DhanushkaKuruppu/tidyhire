@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TidyHire: janitor job board</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#EEF4F5;--surface:#fff;--ink:#10282F;--muted:#5A6F75;--line:#D3E0E3;--brand:#0B6E75;--brand-ink:#fff;--bucket:#F6C21C;--bucket-ink:#3A2C00;--ok:#1E7B3E;--bad:#B3361F;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0C1A1E;--surface:#14262B;--ink:#E6F1F3;--muted:#92AAB0;--line:#264249;--brand:#4CC3CB;--brand-ink:#06242A;--ok:#5CCB84;--bad:#FF8A73;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Figtree,system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif;margin:0;line-height:1.15}
+header{background:var(--brand);color:var(--brand-ink);padding:14px 16px}
+.bar{max-width:880px;margin:auto;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.logo{font:800 24px "Bricolage Grotesque",sans-serif;display:flex;gap:8px;align-items:center}
+.logo i{width:14px;height:18px;background:var(--bucket);border-radius:2px 2px 5px 5px;display:inline-block}
+.who{display:flex;gap:10px;align-items:center;font-weight:600}
+.who .tag{color:var(--ink)}
+.out{border:1px solid rgba(255,255,255,.5);background:none;color:inherit;padding:6px 12px;border-radius:7px;font:600 14px Figtree,sans-serif;cursor:pointer}
+main{max-width:880px;margin:auto;padding:16px}
+nav{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-bottom:16px;overflow-x:auto}
+nav button{border:0;background:none;color:var(--muted);padding:10px 14px;font:600 15px Figtree,sans-serif;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav button.on{color:var(--ink);border-color:var(--bucket)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:12px}
+.card.hot{border-left:5px solid var(--bucket)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.meta{color:var(--muted);font-size:14px;display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 8px}
+.pay{font:800 18px "Bricolage Grotesque",sans-serif}
+.tag{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--bg);border:1px solid var(--line)}
+.tag.ok{color:var(--ok);border-color:currentColor}.tag.bad{color:var(--bad);border-color:currentColor}
+.star{color:#D99A00;font-weight:600}
+button.btn{border:0;background:var(--brand);color:var(--brand-ink);padding:9px 16px;border-radius:7px;font:600 14px Figtree,sans-serif;cursor:pointer}
+button.btn.alt{background:var(--bucket);color:var(--bucket-ink)}
+button.btn:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--bucket);outline-offset:2px}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+.sub{border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+.empty{text-align:center;color:var(--muted);padding:32px 12px}
+.filters{display:flex;gap:8px;margin-bottom:14px}
+.auth{max-width:420px;margin:24px auto}
+.seg{display:flex;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:3px;margin:12px 0}
+.seg button{flex:1;border:0;background:none;color:var(--muted);padding:8px;border-radius:99px;font:600 14px Figtree,sans-serif;cursor:pointer}
+.seg button.on{background:var(--bucket);color:var(--bucket-ink)}
+.link{background:none;border:0;color:var(--brand);font:600 14px Figtree,sans-serif;cursor:pointer;padding:6px 0}
+#aerr{color:var(--bad);font-size:14px;min-height:20px;margin:8px 0 0}
+.auth button.btn{width:100%;margin-top:6px}
+code{background:var(--bg);padding:1px 5px;border-radius:4px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+</style></head><body>
+<header><div class="bar"><div class="logo"><i></i>TidyHire</div><div id="who" class="who"></div></div></header>
+<main><nav id="nav"></nav><div id="view"><div class="empty">Loading…</div></div></main>
+<div id="toast" role="status"></div>
+<script>
+/* STEP 1: paste your Supabase project values here (Project Settings > API) */
+const SUPABASE_URL="https://vjhklcinhcqdlmlufafa.supabase.co";
+const SUPABASE_KEY="sb_publishable_RvNjHVc845X-jnqcB0mgtA_bxrUgbst";
+
+const ready=SUPABASE_URL.startsWith("https://")&&!SUPABASE_KEY.startsWith("PASTE");
+const sb=ready?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let S={role:"janitor",tab:"",q:"",type:"",jobs:[],reviews:[],profile:null},authMode="login",authRole="janitor";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const me=()=>S.profile.name;
+const rate=n=>{const r=S.reviews.filter(x=>x.target===n);return r.length?{a:r.reduce((s,x)=>s+x.stars,0)/r.length,n:r.length}:null};
+const rt=n=>{const r=rate(n);return r?`<span class="star">★ ${r.a.toFixed(1)}</span> <span class="tag">${r.n} review${r.n>1?"s":""}</span>`:`<span class="tag">New</span>`};
+const toast=m=>{const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("show"),2600)};
+const reviewed=(by,id)=>S.reviews.some(r=>r.by===by&&r.jobId===id);
+const ok=async p=>{const{data,error}=await p;if(error){toast(error.message);throw error}return data};
+
+async function load(){
+const[j,a,r]=await Promise.all([sb.from("jobs").select("*").order("created_at",{ascending:false}),sb.from("applications").select("*"),sb.from("reviews").select("*")]);
+if(j.error||a.error||r.error){toast((j.error||a.error||r.error).message);return}
+S.jobs=j.data.map(x=>{const ap=a.data.filter(y=>y.job_id===x.id);return{id:x.id,title:x.title,employer:x.employer,employer_id:x.employer_id,loc:x.loc||"Not specified",pay:x.pay,type:x.type,desc:x.descr||"No details added.",status:x.status,hired:x.hired,applicants:ap.map(y=>y.janitor),aids:Object.fromEntries(ap.map(y=>[y.janitor,y.janitor_id]))}});
+S.reviews=r.data.map(x=>({target:x.target_name,by:x.by_name,stars:x.stars,text:x.text,jobId:x.job_id}))}
+
+const revForm=(j,target)=>`<div class="sub"><strong>Rate ${esc(target)}</strong><div class="grid"><div><label for="st${j.id}">Stars</label><select id="st${j.id}"><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Good</option><option value="3">★★★ Fair</option><option value="2">★★ Poor</option><option value="1">★ Bad</option></select></div><div><label for="tx${j.id}">Review</label><input id="tx${j.id}" placeholder="How did it go?"></div></div><p><button class="btn alt" data-act="review" data-id="${j.id}" data-t="${esc(target)}">Submit review</button></p></div>`;
+
+function tabs(){const t=S.role==="janitor"?[["browse","Find jobs"],["apps","My applications"],["rev","My reviews"]]:[["mine","My jobs"],["post","Post a job"],["rev","My reviews"]];
+if(!t.some(x=>x[0]===S.tab))S.tab=t[0][0];
+document.getElementById("nav").innerHTML=t.map(x=>`<button data-act="tab" data-v="${x[0]}" class="${S.tab===x[0]?"on":""}">${x[1]}</button>`).join("")}
+
+function jobCard(j,body){return `<article class="card ${j.status==="open"?"hot":""}"><div class="row"><h3>${esc(j.title)}</h3><span class="pay">${esc(j.pay)}</span></div><div class="meta"><span>${esc(j.employer)} ${rt(j.employer)}</span><span>${esc(j.loc)}</span><span class="tag">${esc(j.type)}</span></div><p style="margin:0">${esc(j.desc)}</p>${body||""}</article>`}
+
+function browse(){const q=S.q.toLowerCase();
+const l=S.jobs.filter(j=>j.status==="open"&&(!S.type||j.type===S.type)&&(j.title+j.employer+j.loc).toLowerCase().includes(q));
+return `<div class="filters"><input id="q" placeholder="Search title, employer or city" value="${esc(S.q)}" aria-label="Search jobs"><select id="ty" aria-label="Job type" style="max-width:150px"><option value="">All types</option>${["Full-time","Part-time","Weekend","One-off"].map(t=>`<option ${S.type===t?"selected":""}>${t}</option>`).join("")}</select></div>`+
+(l.length?l.map(j=>{const a=j.applicants.includes(me());return jobCard(j,`<div class="sub row"><span class="meta" style="margin:0">${j.applicants.length} applied</span><button class="btn" data-act="apply" data-id="${j.id}" ${a?"disabled":""}>${a?"Applied":"Apply now"}</button></div>`)}).join(""):`<div class="empty">No open jobs yet. Tap Refresh to check for new ones.</div>`)}
+
+function apps(){const l=S.jobs.filter(j=>j.applicants.includes(me()));
+if(!l.length)return `<div class="empty">You haven’t applied yet. Open “Find jobs” and apply to your first one.</div>`;
+return l.map(j=>{let st,x="";
+if(j.status==="open")st=`<span class="tag">Applied, waiting</span>`;
+else if(j.hired===me()){if(j.status==="filled")st=`<span class="tag ok">You’re hired</span>`;else{st=`<span class="tag ok">Completed</span>`;if(!reviewed(me(),j.id))x=revForm(j,j.employer)}}
+else st=`<span class="tag bad">Not selected</span>`;
+return jobCard(j,`<div class="sub">${st}</div>${x}`)}).join("")}
+
+function mine(){const l=S.jobs.filter(j=>j.employer_id===S.profile.id);
+if(!l.length)return `<div class="empty">You haven’t posted a job. Open “Post a job” to find a cleaner.</div>`;
+return l.map(j=>{let b=`<div class="sub"><span class="tag ${j.status==="open"?"":"ok"}">${j.status==="open"?"Open":j.status==="filled"?"Hired: "+esc(j.hired):"Completed: "+esc(j.hired)}</span></div>`;
+if(j.status==="open")b+=j.applicants.length?j.applicants.map(a=>`<div class="sub row"><span><strong>${esc(a)}</strong> ${rt(a)}</span><button class="btn" data-act="hire" data-id="${j.id}" data-n="${esc(a)}">Hire</button></div>`).join(""):`<div class="sub meta">No applicants yet.</div>`;
+if(j.status==="filled")b+=`<p><button class="btn alt" data-act="done" data-id="${j.id}">Mark job complete</button></p>`;
+if(j.status==="done"&&!reviewed(me(),j.id))b+=revForm(j,j.hired);
+return jobCard(j,b)}).join("")}
+
+function post(){return `<div class="card"><h2>Post a job</h2><div class="grid"><div><label for="pt">Job title</label><input id="pt" placeholder="e.g. Evening office cleaner"></div><div><label for="pl">City</label><input id="pl" placeholder="Seattle, WA"></div><div><label for="pp">Pay</label><input id="pp" placeholder="$20/hr"></div><div><label for="py">Type</label><select id="py"><option>Full-time</option><option>Part-time</option><option>Weekend</option><option>One-off</option></select></div></div><label for="pd">Details</label><textarea id="pd" rows="3" placeholder="Tasks, hours, tools needed"></textarea><p><button class="btn alt" data-act="post">Publish job</button></p></div>`}
+
+function rev(){const l=S.reviews.filter(r=>r.target===me());
+return `<div class="card"><div class="row"><h2>${esc(me())}</h2><div>${rt(me())}</div></div></div>`+(l.length?l.map(r=>`<div class="card"><div class="row"><span class="star">${"★".repeat(r.stars)}${"☆".repeat(5-r.stars)}</span><span class="meta" style="margin:0">from ${esc(r.by)}</span></div><p style="margin:6px 0 0">${esc(r.text||"No comment.")}</p></div>`).join(""):`<div class="empty">No reviews yet. Complete a job to earn your first one.</div>`)}
+
+function authView(){const s=authMode==="signup",e=authRole==="employer";
+return `<div class="card auth"><h2>${s?"Create your account":"Log in"}</h2><div class="seg" role="group" aria-label="Account type"><button data-act="arole" data-v="janitor" class="${e?"":"on"}">Janitor</button><button data-act="arole" data-v="employer" class="${e?"on":""}">Job poster</button></div>${s?`<label for="an">${e?"Company name":"Full name"}</label><input id="an" autocomplete="name">`:""}<label for="ae">Email</label><input id="ae" type="email" autocomplete="email"><label for="ap">Password</label><input id="ap" type="password" autocomplete="${s?"new-password":"current-password"}"><p id="aerr" role="alert"></p><button class="btn alt" data-act="login">${s?"Create account":"Log in as "+(e?"job poster":"janitor")}</button><p style="text-align:center;margin:10px 0 0"><button class="link" data-act="amode" data-v="${s?"login":"signup"}">${s?"Have an account? Log in":"New here? Create an account"}</button></p></div>`}
+
+function setupView(){return `<div class="card auth"><h2>Connect your database</h2><p>Open <code>index.html</code> in a text editor and paste your Supabase project URL and anon key at the top of the script. Then reload this page.</p></div>`}
+
+async function auth(){const g=i=>(document.getElementById(i)||{value:""}).value.trim(),em=g("ae").toLowerCase(),pw=document.getElementById("ap").value,err=m=>{document.getElementById("aerr").textContent=m};
+if(!em||!pw)return err("Enter your email and password.");
+if(authMode==="signup"){const nm=g("an");if(!nm)return err("Enter your "+(authRole==="employer"?"company":"full")+" name.");if(pw.length<6)return err("Use a password with at least 6 characters.");
+const{data,error}=await sb.auth.signUp({email:em,password:pw});if(error)return err(error.message);
+if(!data.session)return err("Account created. Confirm your email, then log in. (Tip: turn off “Confirm email” in Supabase Auth settings.)");
+const p=await sb.from("profiles").insert({id:data.user.id,name:nm,role:authRole});
+if(p.error)return err(p.error.code==="23505"?"That name is taken. Add your city or an initial.":p.error.message)}
+else{const{error}=await sb.auth.signInWithPassword({email:em,password:pw});if(error)return err("Email or password is incorrect.")}
+if(!await loadProfile())return err("No profile found for this account.");
+if(authMode==="login"&&S.profile.role!==authRole){const r=S.profile.role;await sb.auth.signOut();S.profile=null;return err("This is a "+(r==="employer"?"job poster":"janitor")+" account. Switch the tab above.")}
+S.tab="";await load();toast(authMode==="signup"?"Account created":"Logged in");render()}
+
+async function loadProfile(){const{data:{user}}=await sb.auth.getUser();if(!user)return false;
+const{data}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();if(!data)return false;S.profile=data;S.role=data.role;return true}
+
+function render(){const v=document.getElementById("view"),w=document.getElementById("who"),n=document.getElementById("nav");
+if(!ready){v.innerHTML=setupView();return}
+if(!S.profile){w.innerHTML="";n.innerHTML="";v.innerHTML=authView();return}
+w.innerHTML=`<span>${esc(me())} <span class="tag">${S.role==="employer"?"Job poster":"Janitor"}</span></span><button class="out" data-act="refresh">Refresh</button><button class="out" data-act="logout">Log out</button>`;
+tabs();v.innerHTML={browse,apps,mine,post,rev}[S.tab]()}
+
+document.addEventListener("input",e=>{if(e.target.id==="q"){S.q=e.target.value;const p=e.target.selectionStart;render();const i=document.getElementById("q");i.focus();i.setSelectionRange(p,p)}});
+document.addEventListener("change",e=>{if(e.target.id==="ty"){S.type=e.target.value;render()}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.closest&&e.target.closest(".auth"))auth()});
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-act]");if(!b)return;const d=b.dataset,id=+d.id,j=S.jobs.find(x=>x.id===id),a=d.act;
+try{
+if(a==="arole")authRole=d.v;
+else if(a==="amode")authMode=d.v;
+else if(a==="login"){auth();return}
+else if(a==="logout"){await sb.auth.signOut();S.profile=null;S.jobs=[];S.reviews=[];S.tab="";authMode="login";toast("Logged out")}
+else if(a==="tab"){S.tab=d.v;await load()}
+else if(a==="refresh"){await load();toast("Up to date")}
+else if(a==="apply"){await ok(sb.from("applications").insert({job_id:id,janitor_id:S.profile.id,janitor:me()}));await load();toast("Application sent")}
+else if(a==="hire"){await ok(sb.from("jobs").update({status:"filled",hired:d.n}).eq("id",id));await load();toast(d.n+" hired")}
+else if(a==="done"){await ok(sb.from("jobs").update({status:"done"}).eq("id",id));await load();toast("Job marked complete")}
+else if(a==="review"){await ok(sb.from("reviews").insert({job_id:id,by_id:S.profile.id,by_name:me(),target_name:d.t,stars:+document.getElementById("st"+id).value,text:document.getElementById("tx"+id).value.trim()}));await load();toast("Review submitted")}
+else if(a==="post"){const g=i=>document.getElementById(i).value.trim();if(!g("pt")||!g("pp")){toast("Add a title and pay first");return}
+await ok(sb.from("jobs").insert({employer_id:S.profile.id,employer:me(),title:g("pt"),loc:g("pl"),pay:g("pp"),type:g("py"),descr:g("pd"),status:"open"}));S.tab="mine";await load();toast("Job published")}
+}catch(x){}
+render()});
+
+(async()=>{if(ready&&await loadProfile())await load();render()})();
+</script></body></html>
